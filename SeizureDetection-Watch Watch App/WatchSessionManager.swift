@@ -7,20 +7,25 @@
 
 import Foundation
 import WatchConnectivity
+import Combine
 
 /// WCSession delegate — sends alerts to iPhone, receives config
+@MainActor
 class WatchSessionManager: NSObject, ObservableObject {
     @Published var isPhoneReachable = false
     @Published var configuration: [String: Any] = [:]
     
     private var session: WCSession?
     
-    override init() {
+    nonisolated override init() {
         super.init()
         
         if WCSession.isSupported() {
-            session = WCSession.default
-            session?.delegate = self
+            let wcSession = WCSession.default
+            Task { @MainActor in
+                self.session = wcSession
+                wcSession.delegate = self
+            }
         }
     }
     
@@ -45,7 +50,7 @@ class WatchSessionManager: NSObject, ObservableObject {
                 try session.updateApplicationContext(["detectionEvent": eventData])
             }
             
-            print("Sent detection event to iPhone: \(event.state)")
+            print("Sent detection event to iPhone: \(event.type.rawValue)")
         } catch {
             print("Error encoding detection event: \(error)")
         }

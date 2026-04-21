@@ -1,57 +1,95 @@
-//
-//  AppModel.swift
-//  EEG-Seizure-Detection
-//
-//  Created by Daniel Ramzani on 21/04/2026.
-//
-
-
 // EEG-Dashboard-visionOS/AppModel.swift — visionOS only
 
 import SwiftUI
 import Combine
 
-@MainActor
-class AppModel: ObservableObject {
+enum ImmersiveSpaceState {
+    case closed
+    case inTransition
+    case open
+}
 
-    @Published var seizureProbability: Float  = 0
-    @Published var detectionState:     DetectionState = .idle
-    @Published var isMonitoring        = false
-    @Published var immersiveSpaceOpen  = false
-    @Published var heartRate:          Double? = nil
-    @Published var eventLog:           [DetectionEvent] = []
+@MainActor
+@Observable
+class AppModel {
+
+    var seizureProbability: Float  = 0
+    var detectionState:     DetectionState = .normal
+    var isMonitoring        = false
+    var immersiveSpaceOpen  = false
+    var heartRate:          Double? = nil
+    var eventLog:           [DetectionEvent] = []
+
+    // Immersive space properties
+    let immersiveSpaceID = "ImmersiveSpace"
+    var immersiveSpaceState = ImmersiveSpaceState.closed
+    var isImmersiveSpaceActive: Bool {
+        immersiveSpaceState == .open
+    }
+    
+    // Computed property for DashboardView compatibility
+    var detectionEvents: [DetectionEvent] {
+        eventLog
+    }
 
     // 22-channel live buffers
-    @Published var channelActivity: [Float] = Array(repeating: 0, count: 22)
-    @Published var spikeTrain: [[Bool]]   = Array(
+    var channelActivity: [Float] = Array(repeating: 0, count: 22)
+    var spikeTrain: [[Bool]]   = Array(
         repeating: Array(repeating: false, count: 256), count: 22)
 
     private var model      = SeizureDetectionModel()
     private var eegSource  = EEGSimulator()
+    private var preprocessor = EEGPreprocessor()
     private var timer:       AnyCancellable?
 
     func startMonitoring() {
         isMonitoring = true
-        eegSource.start { [weak self] window in
-            guard let self, let processed = EEGPreprocessor.process(window)
-            else { return }
-            self.updateActivity(processed)
-            self.updateSpikeTrain(processed)
-            if let result = self.model.predict(eegWindow: processed) {
-                self.seizureProbability = result.probability
-                self.detectionState     = result.state
-                if result.state == .alert {
-                    self.eventLog.insert(
-                        DetectionEvent(probability: Double(result.probability),
-                                        heartRate: self.heartRate ?? 0,
-                                        type: .alert), at: 0)
+        eegSource.startSimulation()
+        
+        // Poll the simulator's currentData periodically
+        timer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                let window = self.eegSource.currentData
+                guard !window.isEmpty, window[0].count >= 256 else { return }
+                
+                // Convert to [[Float]] for compatibility with existing methods
+                let floatWindow = window.map { $0.map { Float($0) } }
+                self.updateActivity(floatWindow)
+                self.updateSpikeTrain(floatWindow)
+                
+                // Preprocess and predict
+                do {
+                    let processed = try self.preprocessor.preprocess(rawData: window)
+                    let result = try self.model.predict(input: processed)
+                    self.seizureProbability = Float(result.probability)
+                    self.detectionState     = result.state
+                    if result.state == .seizure {
+                        self.eventLog.insert(
+                            DetectionEvent(probability: Double(result.probability),
+                                            heartRate: self.heartRate ?? 0,
+                                            type: .alert), at: 0)
+                    }
+                } catch {
+                    print("Preprocessing or prediction error: \(error)")
                 }
             }
+    }
+    
+    func startSimulation() {
+        if isMonitoring {
+            stopMonitoring()
+        } else {
+            startMonitoring()
         }
     }
 
     func stopMonitoring() {
-        eegSource.stop(); isMonitoring = false
+        timer?.cancel()
+        timer = nil
+        eegSource.stopSimulation()
+        isMonitoring = false
         seizureProbability = 0
         channelActivity    = Array(repeating: 0, count: 22)
     }

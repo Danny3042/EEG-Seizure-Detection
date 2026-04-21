@@ -1,8 +1,16 @@
+//
+//  EEGImmersiveView.swift
+//  EEG-Seizure-Detection
+//
+//  Created by Daniel Ramzani on 21/04/2026.
+//
+
+
 import SwiftUI
 import RealityKit
 
 struct EEGImmersiveView: View {
-    @EnvironmentObject var appModel: AppModel
+    @Environment(AppModel.self) private var appModel
     @State private var root = Entity()
     @State private var orbs: [ModelEntity] = []
 

@@ -1,39 +1,50 @@
-//
-//  DetectionEvent.swift
-//  EEGSeizureDetection
-//
-//  Created by Daniel Ramzani on 21/04/2026.
-//
+// Shared/DetectionEvent.swift — tick all three targets
 
 import Foundation
 
-/// Identifiable event struct, timestamp, probability, HR
 struct DetectionEvent: Identifiable, Codable {
-    let id: UUID
-    let timestamp: Date
-    let state: DetectionState
+    let id:          UUID
+    let timestamp:   Date
     let probability: Double
-    let heartRate: Int?
-    let hrv: Double?
-    
-    init(id: UUID = UUID(), timestamp: Date = Date(), state: DetectionState, probability: Double, heartRate: Int? = nil, hrv: Double? = nil) {
-        self.id = id
-        self.timestamp = timestamp
-        self.state = state
+    let heartRate:   Double
+    let type:        EventType
+
+    enum EventType: String, Codable {
+        case elevated  = "Elevated"
+        case alert     = "Alert"
+        case emergency = "Emergency"
+    }
+
+    init(probability: Double, heartRate: Double, type: EventType) {
+        self.id          = UUID()
+        self.timestamp   = Date()
         self.probability = probability
-        self.heartRate = heartRate
-        self.hrv = hrv
+        self.heartRate   = heartRate
+        self.type        = type
     }
-    
-    // Helper properties
-    var isAlert: Bool {
-        state == .seizure || state == .warning
-    }
-    
+
     var formattedTime: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .medium
-        formatter.dateStyle = .short
-        return formatter.string(from: timestamp)
+        timestamp.formatted(date: .abbreviated, time: .standard)
+    }
+
+    var probabilityPercent: String {
+        String(format: "%.0f%%", probability * 100)
+    }
+
+    // Serialise for WatchConnectivity message
+    var asMessage: [String: Any] {
+        ["type":        type.rawValue,
+         "probability": probability,
+         "heartRate":   heartRate,
+         "timestamp":   timestamp.timeIntervalSince1970]
+    }
+
+    static func from(message: [String: Any]) -> DetectionEvent? {
+        guard let typeStr = message["type"] as? String,
+              let type  = EventType(rawValue: typeStr),
+              let prob  = message["probability"] as? Double,
+              let hr    = message["heartRate"] as? Double
+        else { return nil }
+        return DetectionEvent(probability: prob, heartRate: hr, type: type)
     }
 }

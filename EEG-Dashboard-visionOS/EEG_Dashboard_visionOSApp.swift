@@ -14,7 +14,7 @@ struct EEG_Dashboard_visionOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DashboardView()
                 .environment(appModel)
         }
 

@@ -1,3 +1,11 @@
+//
+//  ElectrodeEntity.swift
+//  EEG-Dashboard-visionOS
+//
+//  Created by Daniel Ramzani on 21/04/2026.
+//
+
+
 import RealityKit
 import SwiftUI
 
@@ -27,7 +35,7 @@ struct ElectrodeEntity {
         // Transparent head sphere for spatial reference
         let headMesh = MeshResource.generateSphere(radius: 0.22)
         var headMat  = SimpleMaterial()
-        headMat.color = .init(tint: .white.withAlphaComponent(0.04))
+        headMat.color = .init(tint: UIColor(white: 1.0, alpha: 0.04))
         parent.addChild(ModelEntity(mesh: headMesh, materials: [headMat]))
 
         for electrode in layout {
@@ -37,7 +45,7 @@ struct ElectrodeEntity {
             // Glow sphere (material updated per-frame by EEGImmersiveView)
             let mesh = MeshResource.generateSphere(radius: 0.012)
             var mat  = SimpleMaterial()
-            mat.color = .init(tint: .cyan.withAlphaComponent(0.3))
+            mat.color = .init(tint: UIColor(red: 0.0, green: 1.0, blue: 1.0, alpha: 0.3))
             let orb  = ModelEntity(mesh: mesh, materials: [mat])
             container.addChild(orb)
 
@@ -51,7 +59,7 @@ struct ElectrodeEntity {
                 lineBreakMode: .byCharWrapping
             )
             let label = ModelEntity(mesh: labelMesh,
-                materials: [UnlitMaterial(color: .white.withAlphaComponent(0.7))])
+                materials: [UnlitMaterial(color: UIColor(white: 1.0, alpha: 0.7))])
             label.position = [0, 0.018, 0]
             container.addChild(label)
 

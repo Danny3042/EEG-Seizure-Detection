@@ -7,11 +7,22 @@
 
 import SwiftUI
 
+/// @main entry point for Watch app
 @main
-struct SeizureDetection_Watch_Watch_AppApp: App {
+struct SeizureDetectionWatchApp: App {
+    @StateObject private var healthKitManager = HealthKitManager.shared
+    @StateObject private var sessionManager = WatchSessionManager()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            WatchContentView()
+                .environmentObject(healthKitManager)
+                .environmentObject(sessionManager)
+                .onAppear {
+                    healthKitManager.requestAuthorization()
+                    healthKitManager.startMonitoringActivity()
+                    sessionManager.activateSession()
+                }
         }
     }
 }
