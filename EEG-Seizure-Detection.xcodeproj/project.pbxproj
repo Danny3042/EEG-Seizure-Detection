@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		081C6B222F979D2700B30DD1 /* SeizureDetection-Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 081C6B022F979D2600B30DD1 /* SeizureDetection-Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		081C6B312F979DA500B30DD1 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 081C6B302F979DA500B30DD1 /* HealthKit.framework */; };
+		081CE3AD2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */; };
+		081CE3AE2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */; };
+		081CE3AF2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */; };
 		085EE26E2F97BEA80060F097 /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 086741902F97BD15002D73E7 /* RealityKit.framework */; };
 		085EE26F2F97BEA80060F097 /* RealityKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 086741902F97BD15002D73E7 /* RealityKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		088E0EC62F97BD8C006F861B /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 088E0EC52F97BD8C006F861B /* RealityKit.framework */; };
@@ -100,6 +103,7 @@
 		081C6B0E2F979D2700B30DD1 /* SeizureDetection-Watch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "SeizureDetection-Watch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		081C6B182F979D2700B30DD1 /* SeizureDetection-Watch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "SeizureDetection-Watch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		081C6B302F979DA500B30DD1 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.4.sdk/System/Library/Frameworks/HealthKit.framework; sourceTree = DEVELOPER_DIR; };
+		081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = SeizureDetector.mlpackage; sourceTree = "<group>"; };
 		086741902F97BD15002D73E7 /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = Platforms/XROS.platform/Developer/SDKs/XROS26.4.sdk/System/Library/Frameworks/RealityKit.framework; sourceTree = DEVELOPER_DIR; };
 		088E0EC52F97BD8C006F861B /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/RealityKit.framework; sourceTree = DEVELOPER_DIR; };
 		08BC66382F97B21500CAD0D3 /* EEG-Dashboard-visionOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "EEG-Dashboard-visionOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -301,6 +305,7 @@
 				081C6B2F2F979DA400B30DD1 /* Frameworks */,
 				08BC663A2F97B21500CAD0D3 /* Packages */,
 				081C6AD32F979BCE00B30DD1 /* Products */,
+				081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */,
 			);
 			sourceTree = "<group>";
 		};
@@ -657,6 +662,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				081CE3AF2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -678,6 +684,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				081CE3AE2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -699,6 +706,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				081CE3AD2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
