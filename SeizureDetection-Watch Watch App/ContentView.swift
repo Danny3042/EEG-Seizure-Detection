@@ -123,7 +123,11 @@ struct ContentView: View {
     }
     
     private func geometry(for value: Double) -> CGFloat {
+        #if os(watchOS)
+        let screenWidth: CGFloat = WKInterfaceDevice.current().screenBounds.width - 32
+        #else
         let screenWidth = UIScreen.main.bounds.width - 32
+        #endif
         return CGFloat(value) * screenWidth
     }
 }
@@ -152,7 +156,11 @@ struct MetricCard: View {
             Spacer()
         }
         .padding()
+        #if os(watchOS)
+        .background(Color(white: 0.15))
+        #else
         .background(Color(.secondarySystemBackground))
+        #endif
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

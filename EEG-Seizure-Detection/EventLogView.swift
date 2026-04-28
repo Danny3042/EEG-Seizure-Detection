@@ -43,10 +43,10 @@ struct EventRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: event.isAlert ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                    .foregroundColor(event.isAlert ? .red : .green)
+                Image(systemName: symbolName)
+                    .foregroundColor(symbolColor)
                 
-                Text(event.state.rawValue.capitalized)
+                Text(event.type.rawValue)
                     .font(.headline)
                 
                 Spacer()
@@ -61,19 +61,39 @@ struct EventRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                if let hr = event.heartRate {
-                    Spacer()
-                    HStack(spacing: 4) {
-                        Image(systemName: "heart.fill")
-                            .font(.caption)
-                        Text("\(hr) BPM")
-                            .font(.caption)
-                    }
-                    .foregroundColor(.secondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.caption)
+                    Text(String(format: "%.0f BPM", event.heartRate))
+                        .font(.caption)
                 }
+                .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
+    }
+    
+    private var symbolName: String {
+        switch event.type {
+        case .elevated:
+            return "exclamationmark.circle.fill"
+        case .alert:
+            return "exclamationmark.triangle.fill"
+        case .emergency:
+            return "exclamationmark.octagon.fill"
+        }
+    }
+    
+    private var symbolColor: Color {
+        switch event.type {
+        case .elevated:
+            return .yellow
+        case .alert:
+            return .orange
+        case .emergency:
+            return .red
+        }
     }
 }
 

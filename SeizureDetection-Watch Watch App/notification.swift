@@ -51,8 +51,7 @@ class NotificationManager {
 
 // VitalSignsMonitor manages health data and checks for abnormal readings
 class VitalSignsMonitor {
-    // Observable HealthKit manager to fetch health data
-    @StateObject private var healthKitManager = HealthKitManager()
+    // Uses HealthKitManager.shared singleton for data access
 
     // Vital signs variables
     var heartRate: Int? // Heart rate in bpm

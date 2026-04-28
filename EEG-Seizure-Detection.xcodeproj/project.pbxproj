@@ -144,7 +144,6 @@
 				DashboardView.swift,
 				DetectionEvent.swift,
 				EEGPreprocessor.swift,
-				EEGSeizureDetectionApp.swift,
 				EEGSimulator.swift,
 				EventLogView.swift,
 				HealthKitManager.swift,
@@ -165,10 +164,18 @@
 		08BC66922F97BBC800CAD0D3 /* Exceptions for "SeizureDetection-Watch Watch App" folder in "EEG-Seizure-Detection" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				DetectionState.swift,
 				WatchContentView.swift,
 				WatchSessionManager.swift,
 			);
 			target = 081C6AD12F979BCE00B30DD1 /* EEG-Seizure-Detection */;
+		};
+		08DE306A2FA13FE500195BFA /* Exceptions for "SeizureDetection-Watch Watch App" folder in "EEG-Dashboard-visionOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				DetectionState.swift,
+			);
+			target = 08BC66372F97B21500CAD0D3 /* EEG-Dashboard-visionOS */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -196,6 +203,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				08BC66922F97BBC800CAD0D3 /* Exceptions for "SeizureDetection-Watch Watch App" folder in "EEG-Seizure-Detection" target */,
+				08DE306A2FA13FE500195BFA /* Exceptions for "SeizureDetection-Watch Watch App" folder in "EEG-Dashboard-visionOS" target */,
 			);
 			path = "SeizureDetection-Watch Watch App";
 			sourceTree = "<group>";
@@ -896,6 +904,8 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Motion activity data is used to assess activity level for seizure risk scoring.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
@@ -934,6 +944,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Motion activity data is used to assess activity level for seizure risk scoring.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -1079,6 +1091,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SeizureDetection-Watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "danielramzani.EEG-Seizure-Detection";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1112,6 +1125,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SeizureDetection-Watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "danielramzani.EEG-Seizure-Detection";
 				LD_RUNPATH_SEARCH_PATHS = (

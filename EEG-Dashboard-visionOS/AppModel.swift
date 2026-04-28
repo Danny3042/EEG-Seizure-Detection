@@ -3,6 +3,20 @@
 import SwiftUI
 import Combine
 
+// MARK: - Shared channel types (visionOS copy; iOS defines these in AppModel.swift)
+struct ChannelData: Identifiable {
+    let id:      Int
+    let name:    String
+    let power:   Double
+    let samples: [Double]
+}
+
+struct SpikeTrainData: Identifiable {
+    let id           = UUID()
+    let channelIndex: Int
+    let spikeTimes:  [Double]
+}
+
 enum ImmersiveSpaceState {
     case closed
     case inTransition
@@ -13,7 +27,7 @@ enum ImmersiveSpaceState {
 @Observable
 class AppModel {
 
-    var seizureProbability: Float  = 0
+    var seizureProbability: Double = 0
     var detectionState:     DetectionState = .normal
     var isMonitoring        = false
     var immersiveSpaceOpen  = false
@@ -36,6 +50,16 @@ class AppModel {
     var channelActivity: [Float] = Array(repeating: 0, count: 22)
     var spikeTrain: [[Bool]]   = Array(
         repeating: Array(repeating: false, count: 256), count: 22)
+
+    /// ChannelData array for DashboardView's ChannelActivityCard grid.
+    var channelActivityData: [ChannelData] {
+        channelActivity.enumerated().map { idx, power in
+            ChannelData(id: idx,
+                        name: "Ch\(idx + 1)",
+                        power: Double(power) * 100,
+                        samples: [])
+        }
+    }
 
     private var model      = SeizureDetectionModel()
     private var eegSource  = EEGSimulator()
@@ -63,7 +87,7 @@ class AppModel {
                 do {
                     let processed = try self.preprocessor.preprocess(rawData: window)
                     let result = try self.model.predict(input: processed)
-                    self.seizureProbability = Float(result.probability)
+                    self.seizureProbability = result.probability
                     self.detectionState     = result.state
                     if result.state == .seizure {
                         self.eventLog.insert(

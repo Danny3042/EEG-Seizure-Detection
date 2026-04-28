@@ -9,63 +9,52 @@ import Foundation
 import WatchConnectivity
 import Combine
 
-/// WCSession delegate — sends alerts to iPhone, receives config
-@MainActor
+/// WCSession delegate — sends alerts to iPhone, receives config.
+/// Class is NOT @MainActor so WCSessionDelegate conformance has no isolation conflict;
+/// UI-facing property mutations are dispatched to the main queue explicitly.
 class WatchSessionManager: NSObject, ObservableObject {
+
     @Published var isPhoneReachable = false
     @Published var configuration: [String: Any] = [:]
-    
+
     private var session: WCSession?
-    
-    nonisolated override init() {
+
+    override init() {
         super.init()
-        
-        if WCSession.isSupported() {
-            let wcSession = WCSession.default
-            Task { @MainActor in
-                self.session = wcSession
-                wcSession.delegate = self
-            }
-        }
+        guard WCSession.isSupported() else { return }
+        let wc = WCSession.default
+        wc.delegate = self
+        wc.activate()
+        session = wc
     }
-    
+
     func activateSession() {
         session?.activate()
     }
-    
-    // Send detection event to iPhone
+
+    // MARK: - Outbound
+
     func sendDetectionEvent(_ event: DetectionEvent) {
-        guard let session = session else { return }
-        
+        guard let session else { return }
         do {
-            let eventData = try JSONEncoder().encode(event)
-            let message = ["detectionEvent": eventData]
-            
+            let data = try JSONEncoder().encode(event)
+            let msg: [String: Any] = ["detectionEvent": data]
             if session.isReachable {
-                session.sendMessage(message, replyHandler: nil) { error in
-                    print("Error sending detection event: \(error.localizedDescription)")
+                session.sendMessage(msg, replyHandler: nil) { error in
+                    print("WCSession send error: \(error.localizedDescription)")
                 }
             } else {
-                // Use background transfer if not reachable
-                try session.updateApplicationContext(["detectionEvent": eventData])
+                try session.updateApplicationContext(msg)
             }
-            
-            print("Sent detection event to iPhone: \(event.type.rawValue)")
         } catch {
-            print("Error encoding detection event: \(error)")
+            print("WCSession encode error: \(error)")
         }
     }
-    
-    // Send monitoring status to iPhone
+
     func sendMonitoringStatus(isMonitoring: Bool) {
-        guard let session = session, session.isReachable else {
-            print("iPhone is not reachable")
-            return
-        }
-        
-        let message = ["monitoringStatus": isMonitoring]
-        session.sendMessage(message, replyHandler: nil) { error in
-            print("Error sending monitoring status: \(error.localizedDescription)")
+        guard let session, session.isReachable else { return }
+        session.sendMessage(["monitoringStatus": isMonitoring], replyHandler: nil) { error in
+            print("WCSession monitoring status error: \(error.localizedDescription)")
         }
     }
 }
@@ -73,52 +62,50 @@ class WatchSessionManager: NSObject, ObservableObject {
 // MARK: - WCSessionDelegate
 
 extension WatchSessionManager: WCSessionDelegate {
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+
+    func session(_ session: WCSession,
+                 activationDidCompleteWith activationState: WCSessionActivationState,
+                 error: Error?) {
         DispatchQueue.main.async {
-            if let error = error {
-                print("Session activation failed: \(error.localizedDescription)")
-                return
-            }
-            
-            print("Session activated with state: \(activationState.rawValue)")
             self.isPhoneReachable = session.isReachable
         }
     }
-    
+
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async {
             self.isPhoneReachable = session.isReachable
-            print("iPhone reachability changed: \(session.isReachable)")
         }
     }
-    
-    // Receive messages from iPhone
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        DispatchQueue.main.async {
-            self.handleMessage(message)
-        }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        DispatchQueue.main.async { self.handleMessage(message) }
     }
-    
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+
+    func session(_ session: WCSession,
+                 didReceiveMessage message: [String: Any],
+                 replyHandler: @escaping ([String: Any]) -> Void) {
         DispatchQueue.main.async {
             self.handleMessage(message)
             replyHandler(["status": "received"])
         }
     }
-    
-    // Receive application context updates
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+
+    func session(_ session: WCSession,
+                 didReceiveApplicationContext applicationContext: [String: Any]) {
         DispatchQueue.main.async {
             self.configuration = applicationContext
-            print("Received configuration from iPhone")
         }
     }
-    
+
+    // iOS requires these two; watchOS does not.
+    #if os(iOS)
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) { WCSession.default.activate() }
+    #endif
+
+    // MARK: Private
+
     private func handleMessage(_ message: [String: Any]) {
-        // Handle configuration updates
-        if let config = message as? [String: Any] {
-            configuration = config
-            print("Updated configuration from iPhone")
-        }
+        configuration = message
     }
 }

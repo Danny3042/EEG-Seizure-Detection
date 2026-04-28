@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-/// @main entry point, WindowGroup + ImmersiveSpace scene setup
-@main
+/// Secondary app configuration (entry point is EEG_Dashboard_visionOSApp).
 struct EEGDashboardApp: App {
     @State private var appModel = AppModel()
     

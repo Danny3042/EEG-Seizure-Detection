@@ -10,17 +10,25 @@ import Foundation
 import CoreML
 
 class PredictionManager {
+    private static let seizureModel = SeizureDetectionModel()
+    
     static func predictEpilepsy(heartRate: Double, hrv: Double, activity: Int64) -> Double? {
         do {
-            let config = MLModelConfiguration()
-            let model = try HR_HRV_(configuration: config)
-            
-            let prediction = try model.prediction(heart_rate: heartRate, HRV: hrv, Activity: activity)
-            
-            return prediction.label
+            let result = try seizureModel.predict(heartRate: heartRate, hrv: hrv, activity: activity)
+            return result.probability
         } catch {
-             print("Prediction error: \(error.localizedDescription)")
-            return 9
+            print("Prediction error: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    /// Get full detection result including state
+    static func predictEpilepsyWithState(heartRate: Double, hrv: Double, activity: Int64) -> DetectionResult? {
+        do {
+            return try seizureModel.predict(heartRate: heartRate, hrv: hrv, activity: activity)
+        } catch {
+            print("Prediction error: \(error.localizedDescription)")
+            return nil
         }
     }
 }

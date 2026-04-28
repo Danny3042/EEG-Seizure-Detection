@@ -79,9 +79,15 @@ struct DashboardView: View {
                             GridItem(.flexible()),
                             GridItem(.flexible())
                         ], spacing: 12) {
+                            #if os(visionOS)
+                            ForEach(appModel.channelActivityData.prefix(12)) { channel in
+                                ChannelActivityCard(channel: channel)
+                            }
+                            #else
                             ForEach(appModel.channelActivity.prefix(12)) { channel in
                                 ChannelActivityCard(channel: channel)
                             }
+                            #endif
                         }
                         .padding(.horizontal)
                     }
