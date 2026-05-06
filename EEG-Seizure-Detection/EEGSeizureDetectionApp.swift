@@ -2,25 +2,26 @@
 //  EEGSeizureDetectionApp.swift
 //  EEGSeizureDetection
 //
-//  Created by Daniel Ramzani on 21/04/2026.
-//
 
 import SwiftUI
 
-/// @main entry point for iOS app
 @main
 struct EEGSeizureDetectionApp: App {
     @StateObject private var healthKitManager = HealthKitManager.shared
-    @StateObject private var sessionManager = PhoneSessionManager()
-    
+    @StateObject private var sessionManager   = PhoneSessionManager()
+    @State       private var appModel         = AppModel()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(healthKitManager)
                 .environmentObject(sessionManager)
+                .environment(appModel)
                 .onAppear {
                     healthKitManager.requestAuthorization()
                     sessionManager.activateSession()
+                    // Forward Watch events into AppModel so DashboardView logs them
+                    sessionManager.appModel = appModel
                 }
         }
     }

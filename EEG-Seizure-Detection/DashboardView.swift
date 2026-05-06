@@ -12,8 +12,8 @@ struct DashboardView: View {
     @Environment(AppModel.self) var appModel
     
     #if os(visionOS)
-    @Environment(\.openImmersiveSpace) var openImmersiveSpace
-    @Environment(\.dismissImmersiveSpace) var dismissImmersiveSpace
+    @Environment(\.openWindow)    var openWindow
+    @Environment(\.dismissWindow) var dismissWindow
     #endif
     
     var body: some View {
@@ -100,21 +100,14 @@ struct DashboardView: View {
     
     #if os(visionOS)
     private func toggleImmersiveSpace() {
-        Task {
-            if appModel.isImmersiveSpaceActive {
-                appModel.immersiveSpaceState = .inTransition
-                await dismissImmersiveSpace()
-                // State will be set to .closed in ImmersiveView.onDisappear
-            } else {
-                appModel.immersiveSpaceState = .inTransition
-                let result = await openImmersiveSpace(id: appModel.immersiveSpaceID)
-                if case .error = result {
-                    appModel.immersiveSpaceState = .closed
-                } else if case .userCancelled = result {
-                    appModel.immersiveSpaceState = .closed
-                }
-                // State will be set to .open in ImmersiveView.onAppear
-            }
+        if appModel.isImmersiveSpaceActive {
+            // Volume is open — close it and restore the dashboard
+            dismissWindow(id: appModel.immersiveSpaceID)
+            openWindow(id: "main")
+        } else {
+            // Open the 3-D volume and hide this window
+            openWindow(id: appModel.immersiveSpaceID)
+            dismissWindow(id: "main")
         }
     }
     #endif

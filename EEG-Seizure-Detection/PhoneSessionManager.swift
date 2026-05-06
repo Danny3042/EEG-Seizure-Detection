@@ -13,7 +13,11 @@ import Combine
 class PhoneSessionManager: NSObject, ObservableObject {
     @Published var detectionEvents: [DetectionEvent] = []
     @Published var isWatchReachable = false
-    
+
+    /// Set by the app entry point so incoming Watch events are also
+    /// forwarded into the shared AppModel that DashboardView reads.
+    var appModel: AppModel?
+
     private var session: WCSession?
     
     override init() {
@@ -94,16 +98,15 @@ extension PhoneSessionManager: WCSessionDelegate {
     }
     
     private func handleMessage(_ message: [String: Any]) {
-        // Parse detection event from Watch
         if let eventData = message["detectionEvent"] as? Data {
             do {
                 let event = try JSONDecoder().decode(DetectionEvent.self, from: eventData)
+                // EventLogView
                 detectionEvents.insert(event, at: 0)
-                
-                // Forward to visionOS if needed
+                // DashboardView event log
+                appModel?.detectionEvents.insert(event, at: 0)
                 forwardToVisionOS(event: event)
-                
-                print("Received detection event: \(event.type) - \(event.probability)")
+                print("Watch event received: \(event.type) \(event.probabilityPercent)")
             } catch {
                 print("Error decoding detection event: \(error)")
             }

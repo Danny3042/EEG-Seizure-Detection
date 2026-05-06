@@ -2,8 +2,6 @@
 //  EEG_Dashboard_visionOSApp.swift
 //  EEG-Dashboard-visionOS
 //
-//  Created by Daniel Ramzani on 21/04/2026.
-//
 
 import SwiftUI
 
@@ -13,21 +11,23 @@ struct EEG_Dashboard_visionOSApp: App {
     @State private var appModel = AppModel()
 
     var body: some Scene {
-        WindowGroup {
+
+        // ── Main 2-D control panel ────────────────────────────────────────
+        WindowGroup(id: "main") {
             DashboardView()
                 .environment(appModel)
         }
 
-        ImmersiveSpace(id: appModel.immersiveSpaceID) {
-            ImmersiveView()
+        // ── 3-D EEG brain map — volumetric window ─────────────────────────
+        // A volume keeps the real environment fully visible, lets the user
+        // reach in and tap electrode orbs, and hides the flat dashboard.
+        WindowGroup(id: appModel.immersiveSpaceID) {
+            EEGImmersiveView()
                 .environment(appModel)
-                .onAppear {
-                    appModel.immersiveSpaceState = .open
-                }
-                .onDisappear {
-                    appModel.immersiveSpaceState = .closed
-                }
+                .onAppear   { appModel.immersiveSpaceState = .open   }
+                .onDisappear { appModel.immersiveSpaceState = .closed }
         }
-        .immersionStyle(selection: .constant(.full), in: .full)
+        .windowStyle(.volumetric)
+        .defaultSize(width: 0.7, height: 0.7, depth: 0.7, in: .meters)
     }
 }

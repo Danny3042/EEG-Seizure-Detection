@@ -13,7 +13,6 @@
 		081CE3AE2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */; };
 		081CE3AF2F9F964D002CA1F4 /* SeizureDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 081CE3AC2F9F964D002CA1F4 /* SeizureDetector.mlpackage */; };
 		085EE26E2F97BEA80060F097 /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 086741902F97BD15002D73E7 /* RealityKit.framework */; };
-		085EE26F2F97BEA80060F097 /* RealityKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 086741902F97BD15002D73E7 /* RealityKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		088E0EC62F97BD8C006F861B /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 088E0EC52F97BD8C006F861B /* RealityKit.framework */; };
 		08BC663D2F97B21500CAD0D3 /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 08BC663C2F97B21500CAD0D3 /* RealityKitContent */; };
 /* End PBXBuildFile section */
@@ -88,7 +87,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				085EE26F2F97BEA80060F097 /* RealityKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -896,6 +894,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Motion activity data is used to assess activity level for seizure risk scoring.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -904,8 +904,6 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Seizure Detection reads heart rate and HRV to monitor seizure risk in real time.";
-				INFOPLIST_KEY_NSMotionUsageDescription = "Motion activity data is used to assess activity level for seizure risk scoring.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.4;

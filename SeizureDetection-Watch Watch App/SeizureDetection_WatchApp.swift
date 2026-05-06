@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 /// @main entry point for Watch app
 @main
@@ -22,6 +23,8 @@ struct SeizureDetectionWatchApp: App {
                     healthKitManager.requestAuthorization()
                     healthKitManager.startMonitoringActivity()
                     sessionManager.activateSession()
+                    UNUserNotificationCenter.current()
+                        .requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
                 }
         }
     }
