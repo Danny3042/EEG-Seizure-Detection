@@ -6,6 +6,9 @@
 import SwiftUI
 import Combine
 import UserNotifications
+#if os(watchOS)
+import WatchKit
+#endif
 
 // MARK: - Simulation scenarios
 
@@ -200,26 +203,41 @@ struct WatchContentView: View {
         demoProbability = p
         demoHeartRate   = hr
         demoHRV         = hv
+        sessionManager.sendLiveData(probability: p, heartRate: hr, hrv: hv)
         checkThresholds(newProb: p)
         demoPrevProb = p
     }
 
+    private func currentBatteryLevel() -> Float? {
+        #if os(watchOS)
+        WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
+        let level = WKInterfaceDevice.current().batteryLevel
+        return level >= 0 ? level : nil
+        #else
+        return nil
+        #endif
+    }
+
     private func checkThresholds(newProb p: Double) {
+        let battery = currentBatteryLevel()
         if demoPrevProb < 0.5, p >= 0.5 {
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate), type: .elevated))
+                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                               type: .elevated, batteryLevel: battery))
         }
         if demoPrevProb < 0.7, p >= 0.7 {
             scheduleNotification(title: "Seizure Risk Alert",
                                  body: "You're showing signs of stress. Stay safe.")
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate), type: .alert))
+                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                               type: .alert, batteryLevel: battery))
         }
         if demoPrevProb < 0.9, p >= 0.9 {
             scheduleNotification(title: "Emergency — High Seizure Risk",
                                  body: "Probability exceeded 90%. Seek assistance immediately.")
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate), type: .emergency))
+                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                               type: .emergency, batteryLevel: battery))
         }
     }
 

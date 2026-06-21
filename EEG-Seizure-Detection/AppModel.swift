@@ -118,8 +118,9 @@ class AppModel {
                 
                 let event = DetectionEvent(
                     probability: result.probability,
-                    heartRate: 0.0, // EEG data doesn't include heart rate
-                    type: eventType
+                    heartRate: 0.0,
+                    type: eventType,
+                    batteryLevel: nil
                 )
                 detectionEvents.insert(event, at: 0)
             }

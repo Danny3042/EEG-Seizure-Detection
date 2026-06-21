@@ -11,11 +11,16 @@ import Combine
 
 /// WCSession delegate — receives alerts from Watch, sends to visionOS
 class PhoneSessionManager: NSObject, ObservableObject {
-    @Published var detectionEvents: [DetectionEvent] = []
-    @Published var isWatchReachable = false
+    @Published var detectionEvents:      [DetectionEvent] = []
+    @Published var isWatchReachable      = false
+    // Live streaming from Watch demo
+    @Published var liveProbability:      Double  = 0
+    @Published var liveHeartRate:        Int?    = nil
+    @Published var liveHRV:              Double? = nil
+    // Emergency alert trigger
+    @Published var showEmergencyAlert    = false
+    @Published var pendingEmergencyEvent: DetectionEvent? = nil
 
-    /// Set by the app entry point so incoming Watch events are also
-    /// forwarded into the shared AppModel that DashboardView reads.
     var appModel: AppModel?
 
     private var session: WCSession?
@@ -98,15 +103,26 @@ extension PhoneSessionManager: WCSessionDelegate {
     }
     
     private func handleMessage(_ message: [String: Any]) {
+        // Live streaming data from Watch demo
+        if let live = message["live"] as? [String: Any],
+           let p = live["p"] as? Double {
+            liveProbability = p
+            liveHeartRate   = live["hr"] as? Int
+            liveHRV         = live["hrv"] as? Double
+        }
+
+        // Threshold crossing events
         if let eventData = message["detectionEvent"] as? Data {
             do {
                 let event = try JSONDecoder().decode(DetectionEvent.self, from: eventData)
-                // EventLogView
                 detectionEvents.insert(event, at: 0)
-                // DashboardView event log
                 appModel?.detectionEvents.insert(event, at: 0)
                 forwardToVisionOS(event: event)
-                print("Watch event received: \(event.type) \(event.probabilityPercent)")
+                if event.type == .emergency {
+                    pendingEmergencyEvent = event
+                    showEmergencyAlert    = true
+                }
+                print("Watch event: \(event.type) \(event.probabilityPercent)")
             } catch {
                 print("Error decoding detection event: \(error)")
             }

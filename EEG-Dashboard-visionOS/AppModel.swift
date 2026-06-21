@@ -127,7 +127,8 @@ class AppModel {
                         self.eventLog.insert(
                             DetectionEvent(probability: result.probability,
                                            heartRate:  self.heartRate ?? 0,
-                                           type: .alert), at: 0)
+                                           type: .alert,
+                                           batteryLevel: nil), at: 0)
                     }
                 } catch {
                     print("Preprocessing or prediction error: \(error)")

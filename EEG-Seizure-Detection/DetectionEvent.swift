@@ -3,11 +3,12 @@
 import Foundation
 
 struct DetectionEvent: Identifiable, Codable {
-    let id:          UUID
-    let timestamp:   Date
-    let probability: Double
-    let heartRate:   Double
-    let type:        EventType
+    let id:           UUID
+    let timestamp:    Date
+    let probability:  Double
+    let heartRate:    Double
+    let type:         EventType
+    let batteryLevel: Float?   // Watch battery 0–1 at detection time; nil if unavailable
 
     enum EventType: String, Codable {
         case elevated  = "Elevated"
@@ -15,12 +16,13 @@ struct DetectionEvent: Identifiable, Codable {
         case emergency = "Emergency"
     }
 
-    init(probability: Double, heartRate: Double, type: EventType) {
-        self.id          = UUID()
-        self.timestamp   = Date()
-        self.probability = probability
-        self.heartRate   = heartRate
-        self.type        = type
+    init(probability: Double, heartRate: Double, type: EventType, batteryLevel: Float? = nil) {
+        self.id           = UUID()
+        self.timestamp    = Date()
+        self.probability  = probability
+        self.heartRate    = heartRate
+        self.type         = type
+        self.batteryLevel = batteryLevel
     }
 
     var formattedTime: String {
@@ -45,6 +47,6 @@ struct DetectionEvent: Identifiable, Codable {
               let prob  = message["probability"] as? Double,
               let hr    = message["heartRate"] as? Double
         else { return nil }
-        return DetectionEvent(probability: prob, heartRate: hr, type: type)
+        return DetectionEvent(probability: prob, heartRate: hr, type: type, batteryLevel: nil)
     }
 }

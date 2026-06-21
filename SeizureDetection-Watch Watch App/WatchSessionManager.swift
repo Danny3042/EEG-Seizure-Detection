@@ -57,6 +57,15 @@ class WatchSessionManager: NSObject, ObservableObject {
             print("WCSession monitoring status error: \(error.localizedDescription)")
         }
     }
+
+    /// Streams live probability + vitals every demo tick so the iOS gauge updates in real time.
+    func sendLiveData(probability: Double, heartRate: Int, hrv: Double) {
+        guard let session, session.isReachable else { return }
+        session.sendMessage(
+            ["live": ["p": probability, "hr": heartRate, "hrv": hrv]],
+            replyHandler: nil
+        ) { _ in }
+    }
 }
 
 // MARK: - WCSessionDelegate
