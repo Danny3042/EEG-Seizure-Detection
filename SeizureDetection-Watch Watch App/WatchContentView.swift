@@ -76,6 +76,9 @@ enum SimulationScenario: String, CaseIterable, Identifiable {
 struct WatchContentView: View {
     @EnvironmentObject var healthKitManager: HealthKitManager
     @EnvironmentObject var sessionManager:   WatchSessionManager
+    #if os(watchOS)
+    @StateObject private var workoutSessionManager = WorkoutSessionManager()
+    #endif
 
     // ── Real monitoring ───────────────────────────────────────────────────
     @State private var isMonitoring = false
@@ -174,6 +177,11 @@ struct WatchContentView: View {
             guard isDemoRunning else { return }
             demoTick()
         }
+        .onAppear {
+            #if os(watchOS)
+            workoutSessionManager.requestAuthorization()
+            #endif
+        }
     }
 
     // MARK: - Demo logic
@@ -186,6 +194,9 @@ struct WatchContentView: View {
         demoHeartRate   = 65
         demoHRV         = 55
         isDemoRunning   = true
+        #if os(watchOS)
+        workoutSessionManager.start()
+        #endif
     }
 
     private func stopDemo() {
@@ -195,6 +206,9 @@ struct WatchContentView: View {
         demoHeartRate   = 65
         demoHRV         = 55
         demoPrevProb    = 0
+        #if os(watchOS)
+        workoutSessionManager.stop()
+        #endif
     }
 
     private func demoTick() {
@@ -203,7 +217,7 @@ struct WatchContentView: View {
         demoProbability = p
         demoHeartRate   = hr
         demoHRV         = hv
-        sessionManager.sendLiveData(probability: p, heartRate: hr, hrv: hv)
+        sessionManager.sendLiveData(probability: p, heartRate: hr, hrv: hv, battery: currentBatteryLevel())
         checkThresholds(newProb: p)
         demoPrevProb = p
     }
@@ -264,7 +278,16 @@ struct WatchContentView: View {
 
     private func toggleMonitoring() {
         isMonitoring.toggle()
-        if isMonitoring { healthKitManager.startMonitoringActivity() }
+        if isMonitoring {
+            healthKitManager.startMonitoringActivity()
+            #if os(watchOS)
+            workoutSessionManager.start()
+            #endif
+        } else {
+            #if os(watchOS)
+            workoutSessionManager.stop()
+            #endif
+        }
         sessionManager.sendMonitoringStatus(isMonitoring: isMonitoring)
     }
 }

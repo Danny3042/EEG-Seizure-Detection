@@ -59,12 +59,11 @@ class WatchSessionManager: NSObject, ObservableObject {
     }
 
     /// Streams live probability + vitals every demo tick so the iOS gauge updates in real time.
-    func sendLiveData(probability: Double, heartRate: Int, hrv: Double) {
+    func sendLiveData(probability: Double, heartRate: Int, hrv: Double, battery: Float?) {
         guard let session, session.isReachable else { return }
-        session.sendMessage(
-            ["live": ["p": probability, "hr": heartRate, "hrv": hrv]],
-            replyHandler: nil
-        ) { _ in }
+        var payload: [String: Any] = ["p": probability, "hr": heartRate, "hrv": hrv]
+        if let battery { payload["battery"] = battery }
+        session.sendMessage(["live": payload], replyHandler: nil) { _ in }
     }
 }
 

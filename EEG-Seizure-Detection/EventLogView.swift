@@ -26,8 +26,7 @@ struct EventLogView: View {
                 }
             }
         }
-        .navigationTitle("Event Log")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("History")
         .toolbar {
             if !sessionManager.detectionEvents.isEmpty {
                 Button("Clear") { sessionManager.clearEvents() }

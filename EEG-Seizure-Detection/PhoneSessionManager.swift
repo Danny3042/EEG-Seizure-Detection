@@ -13,10 +13,19 @@ import Combine
 class PhoneSessionManager: NSObject, ObservableObject {
     @Published var detectionEvents:      [DetectionEvent] = []
     @Published var isWatchReachable      = false
+    #if os(iOS)
+    // "Connected" should mean "paired + app installed", not momentary live
+    // reachability — the Watch screen turning off or the app backgrounding
+    // flips isReachable to false constantly even though it's still there.
+    @Published var isWatchPaired         = false
+    @Published var isWatchAppInstalled   = false
+    #endif
     // Live streaming from Watch demo
     @Published var liveProbability:      Double  = 0
     @Published var liveHeartRate:        Int?    = nil
     @Published var liveHRV:              Double? = nil
+    @Published var watchBatteryLevel:    Float?  = nil
+    @Published var lastCheckedAt:        Date    = Date()
     // Emergency alert trigger
     @Published var showEmergencyAlert    = false
     @Published var pendingEmergencyEvent: DetectionEvent? = nil
@@ -67,6 +76,10 @@ extension PhoneSessionManager: WCSessionDelegate {
             
             print("Session activated with state: \(activationState.rawValue)")
             self.isWatchReachable = session.isReachable
+            #if os(iOS)
+            self.isWatchPaired       = session.isPaired
+            self.isWatchAppInstalled = session.isWatchAppInstalled
+            #endif
         }
     }
     
@@ -74,10 +87,17 @@ extension PhoneSessionManager: WCSessionDelegate {
     func sessionDidBecomeInactive(_ session: WCSession) {
         print("Session became inactive")
     }
-    
+
     func sessionDidDeactivate(_ session: WCSession) {
         print("Session deactivated")
         session.activate()
+    }
+
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isWatchPaired       = session.isPaired
+            self.isWatchAppInstalled = session.isWatchAppInstalled
+        }
     }
     #endif
     
@@ -109,6 +129,8 @@ extension PhoneSessionManager: WCSessionDelegate {
             liveProbability = p
             liveHeartRate   = live["hr"] as? Int
             liveHRV         = live["hrv"] as? Double
+            if let battery = live["battery"] as? Float { watchBatteryLevel = battery }
+            lastCheckedAt   = Date()
         }
 
         // Threshold crossing events

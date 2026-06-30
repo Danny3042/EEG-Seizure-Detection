@@ -13,7 +13,7 @@ struct EEGSeizureDetectionApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
                 .environmentObject(healthKitManager)
                 .environmentObject(sessionManager)
                 .environment(appModel)
