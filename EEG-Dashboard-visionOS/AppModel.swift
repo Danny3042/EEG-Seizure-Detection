@@ -27,12 +27,14 @@ enum ImmersiveSpaceState {
 @Observable
 class AppModel {
 
-    var seizureProbability: Double = 0
-    var detectionState:     DetectionState = .normal
-    var isMonitoring        = false
-    var immersiveSpaceOpen  = false
-    var heartRate:          Double? = nil
-    var eventLog:           [DetectionEvent] = []
+    var seizureProbability:   Double = 0
+    var detectionState:       DetectionState = .normal
+    var isMonitoring          = false
+    var immersiveSpaceOpen    = false
+    var heartRate:            Double? = nil
+    var eventLog:             [DetectionEvent] = []
+    var probabilityHistory:   [Double] = []      // one sample per second, up to 120
+    var heartRateHistory:     [Double] = []      // parallel heart-rate samples
 
     // MARK: - Immersive space
     let immersiveSpaceID = "ImmersiveSpace"
@@ -91,6 +93,9 @@ class AppModel {
         }
     }
 
+    // MARK: - HealthKit (real data from paired iPhone / Apple Watch)
+    let hkManager = VisionOSHealthKitManager()
+
     // MARK: - Internals
     private var model        = SeizureDetectionModel()
     private var eegSource    = EEGSimulator()
@@ -98,6 +103,10 @@ class AppModel {
     private var timer:       AnyCancellable?
 
     // MARK: - Control
+
+    func requestHealthKitAuthorization() {
+        Task { await hkManager.requestAuthorization() }
+    }
 
     func startMonitoring() {
         isMonitoring = true
@@ -123,10 +132,25 @@ class AppModel {
                     let result    = try self.model.predict(input: processed)
                     self.seizureProbability = result.probability
                     self.detectionState     = result.state
+
+                    // Prefer real HealthKit data; fall back to EEG-derived simulation
+                    let avgActivity = self.channelActivity.reduce(0, +) / Float(max(self.channelActivity.count, 1))
+                    let simHR = 62.0 + Double(avgActivity) * 55.0 + Double.random(in: -2...2)
+                    let simHRV = max(5.0, 55.0 - Double(avgActivity) * 35.0 + Double.random(in: -2...2))
+                    let realHR = self.hkManager.heartRate
+                    self.heartRate = realHR ?? simHR
+
+                    // Accumulate history (120-second window)
+                    self.probabilityHistory.append(result.probability)
+                    self.heartRateHistory.append(realHR ?? simHR)
+                    _ = simHRV // available if needed for future HRV display
+                    if self.probabilityHistory.count > 120 { self.probabilityHistory.removeFirst() }
+                    if self.heartRateHistory.count > 120   { self.heartRateHistory.removeFirst() }
+
                     if result.state == .seizure {
                         self.eventLog.insert(
                             DetectionEvent(probability: result.probability,
-                                           heartRate:  self.heartRate ?? 0,
+                                           heartRate:  simHR,
                                            type: .alert,
                                            batteryLevel: nil), at: 0)
                     }
@@ -146,9 +170,12 @@ class AppModel {
         eegSource.stopSimulation()
         isMonitoring        = false
         seizureProbability  = 0
+        heartRate           = nil
         channelActivity     = Array(repeating: 0,  count: 22)
         channelWaveforms    = Array(repeating: [], count: 22)
         selectedChannel     = nil
+        probabilityHistory  = []
+        heartRateHistory    = []
     }
 
     // MARK: - Private helpers

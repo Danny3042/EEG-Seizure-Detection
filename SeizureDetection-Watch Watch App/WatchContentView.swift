@@ -81,7 +81,8 @@ struct WatchContentView: View {
     #endif
 
     // ── Real monitoring ───────────────────────────────────────────────────
-    @State private var isMonitoring = false
+    @State private var isMonitoring  = false
+    @State private var realPrevProb: Double = 0   // threshold tracking for real mode
 
     // ── Demo state (all @State — no class, no threading issues) ──────────
     @State private var isDemoRunning   = false
@@ -172,10 +173,13 @@ struct WatchContentView: View {
             .navigationTitle("EEG Watch")
             .navigationBarTitleDisplayMode(.inline)
         }
-        // ── Demo tick ─────────────────────────────────────────────────────
+        // ── Tick — demo or real monitoring ───────────────────────────────
         .onReceive(ticker) { _ in
-            guard isDemoRunning else { return }
-            demoTick()
+            if isDemoRunning {
+                demoTick()
+            } else if isMonitoring {
+                realMonitorTick()
+            }
         }
         .onAppear {
             #if os(watchOS)
@@ -218,8 +222,19 @@ struct WatchContentView: View {
         demoHeartRate   = hr
         demoHRV         = hv
         sessionManager.sendLiveData(probability: p, heartRate: hr, hrv: hv, battery: currentBatteryLevel())
-        checkThresholds(newProb: p)
+        checkThresholds(newProb: p, prevProb: demoPrevProb, heartRate: Double(hr))
         demoPrevProb = p
+    }
+
+    // Streams the Watch's real sensor-based prediction to the iPhone every second.
+    // The Watch is the authoritative sensor — iPhone displays this value directly.
+    private func realMonitorTick() {
+        let p  = healthKitManager.epilepsyPredictionValue ?? 0
+        let hr = healthKitManager.heartRate ?? 65
+        let hv = healthKitManager.hrv ?? 40.0
+        sessionManager.sendLiveData(probability: p, heartRate: hr, hrv: hv, battery: currentBatteryLevel())
+        checkThresholds(newProb: p, prevProb: realPrevProb, heartRate: Double(hr))
+        realPrevProb = p
     }
 
     private func currentBatteryLevel() -> Float? {
@@ -232,25 +247,25 @@ struct WatchContentView: View {
         #endif
     }
 
-    private func checkThresholds(newProb p: Double) {
+    private func checkThresholds(newProb p: Double, prevProb: Double, heartRate hr: Double) {
         let battery = currentBatteryLevel()
-        if demoPrevProb < 0.5, p >= 0.5 {
+        if prevProb < 0.5, p >= 0.5 {
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                DetectionEvent(probability: p, heartRate: hr,
                                type: .elevated, batteryLevel: battery))
         }
-        if demoPrevProb < 0.7, p >= 0.7 {
+        if prevProb < 0.7, p >= 0.7 {
             scheduleNotification(title: "Seizure Risk Alert",
                                  body: "You're showing signs of stress. Stay safe.")
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                DetectionEvent(probability: p, heartRate: hr,
                                type: .alert, batteryLevel: battery))
         }
-        if demoPrevProb < 0.9, p >= 0.9 {
+        if prevProb < 0.9, p >= 0.9 {
             scheduleNotification(title: "Emergency — High Seizure Risk",
                                  body: "Probability exceeded 90%. Seek assistance immediately.")
             sessionManager.sendDetectionEvent(
-                DetectionEvent(probability: p, heartRate: Double(demoHeartRate),
+                DetectionEvent(probability: p, heartRate: hr,
                                type: .emergency, batteryLevel: battery))
         }
     }
@@ -279,11 +294,13 @@ struct WatchContentView: View {
     private func toggleMonitoring() {
         isMonitoring.toggle()
         if isMonitoring {
+            realPrevProb = 0
             healthKitManager.startMonitoringActivity()
             #if os(watchOS)
             workoutSessionManager.start()
             #endif
         } else {
+            realPrevProb = 0
             #if os(watchOS)
             workoutSessionManager.stop()
             #endif

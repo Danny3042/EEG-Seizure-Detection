@@ -37,6 +37,16 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
+                    // Watch's authoritative pIctal score — visible when Watch is streaming
+                    if sessionManager.liveProbability > 0 || sessionManager.isWatchReachable {
+                        LiveWatchCard(
+                            probability: sessionManager.liveProbability,
+                            heartRate:   sessionManager.liveHeartRate,
+                            hrv:         sessionManager.liveHRV,
+                            isLive:      sessionManager.isWatchReachable
+                        )
+                    }
+
                     StatusCard(hasRisk: hasRiskToday, lastChecked: sessionManager.lastCheckedAt)
 
                     HStack(spacing: 12) {
@@ -170,7 +180,7 @@ private struct StatusCard: View {
                     Text(hasRisk ? "Risk Detected" : "All clear")
                         .font(.title3.bold())
                         .foregroundStyle(.white)
-                    Text("Monitoring active · checked \(secondsAgo(context.date))s ago")
+                    Text("Monitoring active · checked \(timeAgo(context.date))")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.85))
                 }
@@ -181,8 +191,19 @@ private struct StatusCard: View {
         .background(hasRisk ? Color.red : Color.blue, in: RoundedRectangle(cornerRadius: 18))
     }
 
-    private func secondsAgo(_ now: Date) -> Int {
-        max(0, Int(now.timeIntervalSince(lastChecked)))
+    private func timeAgo(_ now: Date) -> String {
+        let s = max(0, Int(now.timeIntervalSince(lastChecked)))
+        switch s {
+        case 0..<60:   return "\(s)s ago"
+        case 60..<3600:
+            let m = s / 60
+            let rem = s % 60
+            return rem == 0 ? "\(m)m ago" : "\(m)m \(rem)s ago"
+        default:
+            let h = s / 3600
+            let m = (s % 3600) / 60
+            return m == 0 ? "\(h)h ago" : "\(h)h \(m)m ago"
+        }
     }
 }
 
@@ -446,6 +467,97 @@ private struct DemoDisclosure: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Live Watch pIctal card
+
+// Shown on the iPhone dashboard whenever the Watch is paired and sending data.
+// The Watch is the authoritative sensor for seizure detection — this card
+// makes its real-time pIctal score the most prominent element on screen.
+private struct LiveWatchCard: View {
+    let probability: Double
+    let heartRate:   Int?
+    let hrv:         Double?
+    let isLive:      Bool
+
+    private var color: Color {
+        probability >= 0.7 ? .red : probability >= 0.5 ? .orange : .green
+    }
+    private var riskLabel: String {
+        probability >= 0.7 ? "High Risk" : probability >= 0.5 ? "Elevated" : "Normal"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Label("Watch · pIctal Score", systemImage: "applewatch.radiowaves.left.and.right")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(isLive ? Color.green : Color.secondary)
+                        .frame(width: 7, height: 7)
+                    Text(isLive ? "Live" : "Last known")
+                        .font(.caption2.bold())
+                        .foregroundStyle(isLive ? .green : .secondary)
+                }
+            }
+
+            // Gauge row
+            HStack(spacing: 18) {
+                // Ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.15), lineWidth: 10)
+                    Circle()
+                        .trim(from: 0, to: probability)
+                        .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 0.5), value: probability)
+                    VStack(spacing: 1) {
+                        Text(String(format: "%.0f%%", probability * 100))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(color)
+                            .contentTransition(.numericText())
+                        Text(riskLabel)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(color)
+                    }
+                }
+                .frame(width: 88, height: 88)
+
+                // Vitals
+                VStack(alignment: .leading, spacing: 8) {
+                    if let hr = heartRate {
+                        WatchVital(icon: "heart.fill", color: .red,
+                                   value: "\(hr)", unit: "bpm")
+                    }
+                    if let hv = hrv {
+                        WatchVital(icon: "waveform.path.ecg", color: .purple,
+                                   value: String(format: "%.0f", hv), unit: "ms HRV")
+                    }
+                }
+
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(color.opacity(0.2), lineWidth: 1))
+    }
+}
+
+private struct WatchVital: View {
+    let icon: String; let color: Color; let value: String; let unit: String
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.caption).foregroundStyle(color)
+            Text(value).font(.subheadline.bold()).contentTransition(.numericText())
+            Text(unit).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }

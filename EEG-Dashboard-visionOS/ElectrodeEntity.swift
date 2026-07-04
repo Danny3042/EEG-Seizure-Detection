@@ -38,19 +38,13 @@ struct ElectrodeEntity {
         ChannelComponent.registerComponent()
     }
 
-    /// Build all 22 interactive electrode orbs and a transparent head sphere.
+    /// Build all 22 interactive electrode orbs and an anatomical brain reference.
     /// Returns the `ModelEntity` for each orb so `EEGImmersiveView` can update
     /// materials each frame.
     static func buildAll(parent: Entity) -> [ModelEntity] {
         var orbs: [ModelEntity] = []
 
-        // ── Transparent head reference sphere ─────────────────────────────
-        let headMesh = MeshResource.generateSphere(radius: 0.22)
-        var headMat  = SimpleMaterial()
-        headMat.color = .init(tint: UIColor(white: 1.0, alpha: 0.04))
-        headMat.roughness = .float(1)
-        headMat.metallic  = .float(0)
-        parent.addChild(ModelEntity(mesh: headMesh, materials: [headMat]))
+        buildBrainReference(parent: parent)
 
         // ── Electrode orbs ────────────────────────────────────────────────
         for (idx, electrode) in layout.enumerated() {
@@ -100,5 +94,61 @@ struct ElectrodeEntity {
         }
 
         return orbs
+    }
+
+    // MARK: - Brain reference geometry
+
+    /// Builds a multi-sphere anatomical proxy: outer cortex + four lobe regions.
+    private static func buildBrainReference(parent: Entity) {
+        // ── Outer cortex ─────────────────────────────────────────────────
+        // Semi-transparent sphere representing the skull/scalp boundary
+        let cortexMesh = MeshResource.generateSphere(radius: 0.22)
+        var cortexMat  = SimpleMaterial()
+        cortexMat.color     = .init(tint: UIColor(red: 0.7, green: 0.85, blue: 0.95, alpha: 0.07))
+        cortexMat.roughness = .float(0.9)
+        cortexMat.metallic  = .float(0)
+        parent.addChild(ModelEntity(mesh: cortexMesh, materials: [cortexMat]))
+
+        // Thin outer shell for a subtle halo effect
+        let shellMesh = MeshResource.generateSphere(radius: 0.228)
+        let shellMat  = UnlitMaterial(color: UIColor(white: 0.9, alpha: 0.015))
+        parent.addChild(ModelEntity(mesh: shellMesh, materials: [shellMat]))
+
+        // ── Frontal lobe ─────────────────────────────────────────────────
+        addLobeSphere(parent: parent,
+                      radius: 0.13, position: SIMD3( 0.00,  0.06, -0.11),
+                      color: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.06))
+
+        // ── Temporal lobes (bilateral) ────────────────────────────────────
+        addLobeSphere(parent: parent,
+                      radius: 0.10, position: SIMD3(-0.19, -0.02,  0.02),
+                      color: UIColor(red: 0.6, green: 0.3, blue: 1.0, alpha: 0.055))
+        addLobeSphere(parent: parent,
+                      radius: 0.10, position: SIMD3( 0.19, -0.02,  0.02),
+                      color: UIColor(red: 0.6, green: 0.3, blue: 1.0, alpha: 0.055))
+
+        // ── Parietal lobe ─────────────────────────────────────────────────
+        addLobeSphere(parent: parent,
+                      radius: 0.11, position: SIMD3( 0.00,  0.08,  0.10),
+                      color: UIColor(red: 0.2, green: 0.9, blue: 0.6, alpha: 0.05))
+
+        // ── Occipital lobe ────────────────────────────────────────────────
+        addLobeSphere(parent: parent,
+                      radius: 0.09, position: SIMD3( 0.00, -0.05,  0.18),
+                      color: UIColor(red: 1.0, green: 0.4, blue: 0.3, alpha: 0.055))
+    }
+
+    private static func addLobeSphere(parent: Entity,
+                                       radius: Float,
+                                       position: SIMD3<Float>,
+                                       color: UIColor) {
+        let mesh    = MeshResource.generateSphere(radius: radius)
+        var mat     = SimpleMaterial()
+        mat.color   = .init(tint: color)
+        mat.roughness = .float(1.0)
+        mat.metallic  = .float(0)
+        let entity  = ModelEntity(mesh: mesh, materials: [mat])
+        entity.position = position
+        parent.addChild(entity)
     }
 }

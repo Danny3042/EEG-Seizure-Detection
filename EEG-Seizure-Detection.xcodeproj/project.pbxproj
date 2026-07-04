@@ -113,7 +113,6 @@
 		085EE27D2F97C1F50060F097 /* Exceptions for "EEG-Seizure-Detection" folder in "EEG-Dashboard-visionOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				DashboardView.swift,
 				DetectionEvent.swift,
 				EEGPreprocessor.swift,
 				EEGSimulator.swift,
@@ -155,7 +154,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				SpikeTrainView.swift,
 			);
 			target = 08BC66372F97B21500CAD0D3 /* EEG-Dashboard-visionOS */;
 		};
@@ -1252,12 +1250,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EEG-Dashboard-visionOS/EEG-Dashboard-visionOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 49BZF93FUP;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Dashboard reads heart rate and HRV from Apple Health to display live neurological monitoring data alongside the EEG simulation.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1283,12 +1283,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EEG-Dashboard-visionOS/EEG-Dashboard-visionOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 49BZF93FUP;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "EEG Dashboard reads heart rate and HRV from Apple Health to display live neurological monitoring data alongside the EEG simulation.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

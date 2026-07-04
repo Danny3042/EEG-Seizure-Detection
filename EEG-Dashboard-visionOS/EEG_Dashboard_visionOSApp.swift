@@ -12,15 +12,15 @@ struct EEG_Dashboard_visionOSApp: App {
 
     var body: some Scene {
 
-        // ── Main 2-D control panel ────────────────────────────────────────
+        // ── Main 2-D dashboard ────────────────────────────────────────────
         WindowGroup(id: "main") {
             DashboardView()
                 .environment(appModel)
+                .onAppear { appModel.requestHealthKitAuthorization() }
         }
+        .defaultSize(width: 920, height: 720)
 
         // ── 3-D EEG brain map — volumetric window ─────────────────────────
-        // A volume keeps the real environment fully visible, lets the user
-        // reach in and tap electrode orbs, and hides the flat dashboard.
         WindowGroup(id: appModel.immersiveSpaceID) {
             EEGImmersiveView()
                 .environment(appModel)
@@ -29,5 +29,26 @@ struct EEG_Dashboard_visionOSApp: App {
         }
         .windowStyle(.volumetric)
         .defaultSize(width: 0.7, height: 0.7, depth: 0.7, in: .meters)
+
+        // ── Probability timeline — floating chart ─────────────────────────
+        WindowGroup(id: "timeline") {
+            ProbabilityTimelineView()
+                .environment(appModel)
+        }
+        .defaultSize(width: 700, height: 320)
+
+        // ── Event log — spatial history panel ────────────────────────────
+        WindowGroup(id: "eventlog") {
+            EventLogWindowView()
+                .environment(appModel)
+        }
+        .defaultSize(width: 540, height: 500)
+
+        // ── Spike train raster — 22-channel raster plot ───────────────────
+        WindowGroup(id: "spiketrain") {
+            SpikeTrainView()
+                .environment(appModel)
+        }
+        .defaultSize(width: 820, height: 620)
     }
 }
