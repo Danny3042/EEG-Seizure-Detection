@@ -149,6 +149,14 @@ class AppModel {
     var watchLiveHeartRate:    Int?    = nil
     var watchLiveHRV:          Double? = nil
 
+    // Auto-activates monitoring the moment the Watch starts streaming, and
+    // auto-stops it again once the stream goes quiet — but only if this app
+    // was the one that started it; a user-initiated "Start EEG" is left alone.
+    private var lastWatchLiveUpdateAt: Date? = nil
+    private var monitoringAutoStartedByWatch = false
+    private var watchWatchdogTask: Task<Void, Never>?
+    private let watchIdleTimeout: TimeInterval = 6
+
     // MARK: - Internals
     private var model        = SeizureDetectionModel()
     private var eegSource    = EEGSimulator()
@@ -169,14 +177,17 @@ class AppModel {
             self.refreshBridgeConnectionState()
         }
         watchPuller.onLiveUpdate = { [weak self] probability, heartRate, hrv, _ in
-            self?.watchLiveProbability = probability
-            self?.watchLiveHeartRate   = heartRate
-            self?.watchLiveHRV         = hrv
+            guard let self else { return }
+            self.watchLiveProbability = probability
+            self.watchLiveHeartRate   = heartRate
+            self.watchLiveHRV         = hrv
+            self.recordWatchLiveUpdate()
         }
         watchPuller.onNewEvent = { [weak self] event in
             self?.mergeWatchEvent(event)
         }
         watchPuller.start()
+        startWatchWatchdog()
 
         // Localhost path (Simulator only — see WatchBridgeClient.swift)
         bridgeClient.onConnectionChange = { [weak self] connected in
@@ -194,6 +205,7 @@ class AppModel {
                     self.watchLiveProbability = message.probability
                     self.watchLiveHeartRate   = message.heartRate
                     self.watchLiveHRV         = message.hrv
+                    self.recordWatchLiveUpdate()
                 case .event:
                     if let event = message.event { self.mergeWatchEvent(event) }
                 }
@@ -210,6 +222,35 @@ class AppModel {
         guard !eventLog.contains(where: { $0.id == event.id }) else { return }
         eventLog.insert(event, at: 0)
         eventLog.sort { $0.timestamp > $1.timestamp }
+    }
+
+    /// Called on every live push/poll from either bridge path. Auto-starts
+    /// local monitoring the moment the Watch is heard from, so the dashboard
+    /// comes alive without the user tapping "Start EEG" themselves.
+    private func recordWatchLiveUpdate() {
+        lastWatchLiveUpdateAt = Date()
+        guard !isMonitoring else { return }
+        monitoringAutoStartedByWatch = true
+        startMonitoring()
+    }
+
+    /// Polls for the Watch stream going quiet and auto-stops monitoring —
+    /// but only when this app is what auto-started it, so a manual
+    /// "Start EEG" press is never overridden by the watchdog.
+    private func startWatchWatchdog() {
+        guard watchWatchdogTask == nil else { return }
+        watchWatchdogTask = Task { [weak self] in
+            while let self, !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard self.monitoringAutoStartedByWatch,
+                      self.isMonitoring,
+                      let last = self.lastWatchLiveUpdateAt,
+                      Date().timeIntervalSince(last) > self.watchIdleTimeout
+                else { continue }
+                self.monitoringAutoStartedByWatch = false
+                self.stopMonitoring()
+            }
+        }
     }
 
     func startMonitoring() {

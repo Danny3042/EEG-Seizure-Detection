@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @Environment(AppModel.self)    private var appModel
-    @Environment(\.openWindow)    private var openWindow
-    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(AppModel.self) private var appModel
+    @Environment(\.openWindow)  private var openWindow
 
     var body: some View {
         NavigationStack {
@@ -167,7 +166,6 @@ struct DashboardView: View {
                                    label: "Brain View",
                                    description: "3-D electrode map") {
                     openWindow(id: appModel.immersiveSpaceID)
-                    dismissWindow(id: "main")
                 }
                 WindowLaunchButton(icon: "chart.xyaxis.line",
                                    label: "Timeline",
