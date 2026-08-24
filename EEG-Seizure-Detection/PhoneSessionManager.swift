@@ -33,6 +33,9 @@ class PhoneSessionManager: NSObject, ObservableObject {
     @Published var pendingEmergencyEvent: DetectionEvent? = nil
 
     var appModel: AppModel?
+    #if os(iOS)
+    let cloudBridge = CloudKitBridge()
+    #endif
 
     private var session: WCSession?
     private let eventsStorageKey = "detection_events"
@@ -156,6 +159,17 @@ extension PhoneSessionManager: WCSessionDelegate {
             liveHRV         = live["hrv"] as? Double
             if let battery = live["battery"] as? Float { watchBatteryLevel = battery }
             lastCheckedAt   = Date()
+
+            #if os(iOS)
+            Task { @MainActor [weak self] in
+                self?.cloudBridge.pushLiveState(probability: p,
+                                                heartRate: self?.liveHeartRate,
+                                                hrv:       self?.liveHRV,
+                                                battery:   self?.watchBatteryLevel)
+            }
+            WatchBridgeServer.shared.broadcast(
+                .live(probability: p, heartRate: liveHeartRate, hrv: liveHRV, battery: watchBatteryLevel))
+            #endif
         }
 
         // Threshold crossing events
@@ -164,7 +178,10 @@ extension PhoneSessionManager: WCSessionDelegate {
                 let event = try JSONDecoder().decode(DetectionEvent.self, from: eventData)
                 detectionEvents.insert(event, at: 0)
                 appModel?.detectionEvents.insert(event, at: 0)
-                forwardToVisionOS(event: event)
+                #if os(iOS)
+                Task { @MainActor [weak self] in self?.cloudBridge.pushEvent(event) }
+                WatchBridgeServer.shared.broadcast(.event(event))
+                #endif
                 if event.type == .emergency {
                     pendingEmergencyEvent = event
                     showEmergencyAlert    = true
@@ -174,11 +191,5 @@ extension PhoneSessionManager: WCSessionDelegate {
                 print("Error decoding detection event: \(error)")
             }
         }
-    }
-    
-    private func forwardToVisionOS(event: DetectionEvent) {
-        // Implement visionOS forwarding logic here
-        // This could use Group Activities, Multipeer Connectivity, or other methods
-        print("Forwarding event to visionOS: \(event.id)")
     }
 }

@@ -17,6 +17,14 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     headerRow
+                    if appModel.watchLiveProbability != nil || appModel.isWatchCloudConnected {
+                        WatchCloudCard(
+                            probability: appModel.watchLiveProbability ?? 0,
+                            heartRate:   appModel.watchLiveHeartRate,
+                            hrv:         appModel.watchLiveHRV,
+                            isConnected: appModel.isWatchCloudConnected
+                        )
+                    }
                     gaugeAndVitalsRow
                     windowLaunchGrid
                     channelHeatMap
@@ -75,34 +83,38 @@ struct DashboardView: View {
 
     private var gaugeAndVitalsRow: some View {
         HStack(alignment: .top, spacing: 20) {
-            ProbabilityGaugeCard(probability: appModel.seizureProbability)
+            ProbabilityGaugeCard(probability: appModel.displayProbability)
                 .frame(width: 270)
 
             VStack(spacing: 14) {
-                // Heart rate: real HealthKit value shown with a "live" badge; fallback is labelled simulated
-                let realHR = appModel.hkManager.heartRate
+                // Heart rate: mirrors WatchCloudCard — Watch value wins when connected,
+                // falls back to this device's own HealthKit read, then the EEG-derived sim.
                 VitalCard(icon: "heart.fill", color: .red,
                           label: "Heart Rate",
-                          value: appModel.heartRate.map { "\(Int($0))" } ?? "--",
+                          value: appModel.displayHeartRate.map { "\(Int($0))" } ?? "--",
                           unit: "bpm",
-                          badge: realHR != nil ? "Live" : (appModel.hkManager.isAuthorized ? "Sim" : "—"))
-                // HRV from HealthKit if available
-                let realHRV = appModel.hkManager.hrv
+                          badge: badgeText(for: appModel.heartRateSource))
+                // HRV: mirrors WatchCloudCard — Watch value wins, else HealthKit.
                 VitalCard(icon: "waveform.path.ecg", color: .purple,
                           label: "HRV (SDNN)",
-                          value: realHRV.map { String(format: "%.0f", $0) } ?? "--",
+                          value: appModel.displayHRV.map { String(format: "%.0f", $0) } ?? "--",
                           unit: "ms",
-                          badge: realHRV != nil ? "Live" : "—")
+                          badge: badgeText(for: appModel.hrvSource))
+                // Per-channel spike count has no Watch equivalent — always local to
+                // this device's own 22-channel EEG simulation.
                 VitalCard(icon: "bolt.fill", color: .orange,
                           label: "Spiking",
                           value: "\(appModel.liveSpikes.count)",
                           unit: "/ 22 ch",
-                          badge: nil)
+                          badge: "Local")
+                // State: mirrors WatchCloudCard's risk thresholds via displayProbability
+                // instead of the local-only detectionState, so it never disagrees with
+                // the pIctal score shown everywhere else.
                 VitalCard(icon: "brain.head.profile", color: detectionColor,
                           label: "State",
                           value: detectionLabel,
                           unit: "",
-                          badge: nil)
+                          badge: appModel.watchLiveProbability != nil ? "Watch" : nil)
 
                 // HealthKit auth status hint
                 if let err = appModel.hkManager.authorizationError {
@@ -125,18 +137,21 @@ struct DashboardView: View {
     }
 
     private var detectionColor: Color {
-        switch appModel.detectionState {
-        case .normal:  return .green
-        case .warning: return .orange
-        case .seizure: return .red
-        }
+        let p = appModel.displayProbability
+        return p >= 0.7 ? .red : p >= 0.5 ? .orange : .green
     }
 
     private var detectionLabel: String {
-        switch appModel.detectionState {
-        case .normal:  return "Normal"
-        case .warning: return "Warning"
-        case .seizure: return "Seizure"
+        let p = appModel.displayProbability
+        return p >= 0.7 ? "High Risk" : p >= 0.5 ? "Elevated" : "Normal"
+    }
+
+    private func badgeText(for source: AppModel.VitalSource) -> String? {
+        switch source {
+        case .watch:       return "Watch"
+        case .healthKit:   return "Live"
+        case .simulated:   return "Sim"
+        case .unavailable: return "—"
         }
     }
 
@@ -220,6 +235,81 @@ struct DashboardView: View {
     }
 }
 
+// MARK: - Watch cloud card
+
+// The Watch is the authoritative sensor; its pIctal score reaches this app
+// via CloudKit (relayed through the iPhone — WatchConnectivity can't reach
+// visionOS directly). This card makes that real-time score prominent,
+// distinct from the EEG-simulation gauge below it.
+private struct WatchCloudCard: View {
+    let probability: Double
+    let heartRate:   Int?
+    let hrv:         Double?
+    let isConnected: Bool
+
+    private var color: Color {
+        probability >= 0.7 ? .red : probability >= 0.5 ? .orange : .green
+    }
+    private var riskLabel: String {
+        probability >= 0.7 ? "High Risk" : probability >= 0.5 ? "Elevated" : "Normal"
+    }
+
+    var body: some View {
+        HStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: probability)
+                    .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.5), value: probability)
+                VStack(spacing: 1) {
+                    Text(String(format: "%.0f%%", probability * 100))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(color)
+                        .contentTransition(.numericText())
+                    Text(riskLabel)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(color)
+                }
+            }
+            .frame(width: 84, height: 84)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "applewatch.radiowaves.left.and.right")
+                        .foregroundStyle(.secondary)
+                    Text("Watch · pIctal Score")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Circle()
+                        .fill(isConnected ? Color.green : Color.secondary)
+                        .frame(width: 7, height: 7)
+                    Text(isConnected ? "Synced" : "Offline")
+                        .font(.caption2.bold())
+                        .foregroundStyle(isConnected ? .green : .secondary)
+                }
+                HStack(spacing: 18) {
+                    if let hr = heartRate {
+                        Label("\(hr) bpm", systemImage: "heart.fill")
+                            .font(.callout).foregroundStyle(.red)
+                    }
+                    if let hv = hrv {
+                        Label(String(format: "%.0f ms", hv), systemImage: "waveform.path.ecg")
+                            .font(.callout).foregroundStyle(.purple)
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(color.opacity(0.2), lineWidth: 1))
+    }
+}
+
 // MARK: - Gauge card
 
 private struct ProbabilityGaugeCard: View {
@@ -296,12 +386,13 @@ private struct VitalCard: View {
             }
             Spacer()
             if let badge {
+                let isLive = badge == "Watch" || badge == "Live"
                 Text(badge)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(badge == "Live" ? .green : .secondary)
+                    .foregroundStyle(isLive ? .green : .secondary)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
-                    .background(badge == "Live" ? Color.green.opacity(0.15) : Color.secondary.opacity(0.12),
+                    .background(isLive ? Color.green.opacity(0.15) : Color.secondary.opacity(0.12),
                                 in: Capsule())
             }
         }

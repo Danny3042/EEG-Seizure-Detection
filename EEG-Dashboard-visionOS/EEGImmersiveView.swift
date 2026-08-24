@@ -114,10 +114,10 @@ struct EEGImmersiveView: View {
                     .background(.orange.opacity(0.15), in: Capsule())
             }
 
-            if appModel.isMonitoring {
+            if appModel.isMonitoring || appModel.watchLiveProbability != nil {
                 Divider().frame(height: 24)
 
-                let p = appModel.seizureProbability
+                let p = appModel.displayProbability
                 let color: Color = p >= 0.7 ? .red : p >= 0.5 ? .orange : .green
 
                 VStack(spacing: 1) {
@@ -144,7 +144,7 @@ struct EEGImmersiveView: View {
     private func updateOrbs(phase: Double) {
         let activity = appModel.channelActivity
         let spikes   = appModel.liveSpikes
-        let isAlert  = appModel.seizureProbability > 0.7
+        let isAlert  = appModel.displayProbability > 0.7
         let selected = appModel.selectedChannel
         // 3 Hz sine pulse when alert (0 → 1 → 0)
         let pulse    = isAlert ? Float(0.5 + 0.5 * sin(phase * .pi * 6.0)) : 0
@@ -195,7 +195,7 @@ struct EEGImmersiveView: View {
 
     private func spawnArcs(for spikes: Set<Int>) {
         let layout  = ElectrodeEntity.layout
-        let isAlert = appModel.seizureProbability > 0.7
+        let isAlert = appModel.displayProbability > 0.7
         let active  = Array(spikes.filter { $0 < layout.count }).prefix(4)
         for i in active.indices {
             for j in (i + 1)..<active.endIndex {

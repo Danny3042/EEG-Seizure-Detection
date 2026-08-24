@@ -31,6 +31,8 @@ struct EEGSeizureDetectionApp: App {
                 sessionManager.activateSession()
                 // Forward Watch events into AppModel so DashboardView logs them
                 sessionManager.appModel = appModel
+                // Localhost bridge to visionOS Simulator — see WatchBridgeServer.swift
+                WatchBridgeServer.shared.start()
             }
         }
     }

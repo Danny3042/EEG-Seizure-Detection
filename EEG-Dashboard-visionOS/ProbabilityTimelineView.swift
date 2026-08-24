@@ -40,13 +40,13 @@ struct ProbabilityTimelineView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.0f%%", appModel.seizureProbability * 100))
+                Text(String(format: "%.0f%%", appModel.displayProbability * 100))
                     .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundStyle(probColor(appModel.seizureProbability))
+                    .foregroundStyle(probColor(appModel.displayProbability))
                     .contentTransition(.numericText())
-                Text(probLabel(appModel.seizureProbability))
+                Text(probLabel(appModel.displayProbability))
                     .font(.caption.bold())
-                    .foregroundStyle(probColor(appModel.seizureProbability))
+                    .foregroundStyle(probColor(appModel.displayProbability))
             }
         }
     }

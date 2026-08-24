@@ -16,7 +16,10 @@ struct EEG_Dashboard_visionOSApp: App {
         WindowGroup(id: "main") {
             DashboardView()
                 .environment(appModel)
-                .onAppear { appModel.requestHealthKitAuthorization() }
+                .onAppear {
+                    appModel.requestHealthKitAuthorization()
+                    appModel.startWatchBridgeSync()
+                }
         }
         .defaultSize(width: 920, height: 720)
 

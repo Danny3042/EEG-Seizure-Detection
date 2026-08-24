@@ -36,6 +36,43 @@ class AppModel {
     var probabilityHistory:   [Double] = []      // one sample per second, up to 120
     var heartRateHistory:     [Double] = []      // parallel heart-rate samples
 
+    /// The pIctal score actually shown throughout the app — the Watch is the
+    /// authoritative sensor, so its live score (surfaced in WatchCloudCard)
+    /// wins whenever it's connected. Falls back to the local EEG simulation
+    /// so the dashboard still animates when no Watch bridge is reachable.
+    var displayProbability: Double {
+        watchLiveProbability ?? seizureProbability
+    }
+
+    /// Same precedence as `displayProbability`: Watch first, then the
+    /// phone/visionOS's own HealthKit read, then the local EEG-derived
+    /// simulation already folded into `heartRate`.
+    var displayHeartRate: Double? {
+        watchLiveHeartRate.map(Double.init) ?? hkManager.heartRate ?? heartRate
+    }
+
+    /// Watch first, then HealthKit — there's no local HRV simulation fallback.
+    var displayHRV: Double? {
+        watchLiveHRV ?? hkManager.hrv
+    }
+
+    /// Which tier `displayHeartRate`/`displayHRV` are currently sourced from,
+    /// for the "Watch" / "Live" / "Sim" badges on the dashboard vital cards.
+    enum VitalSource { case watch, healthKit, simulated, unavailable }
+
+    var heartRateSource: VitalSource {
+        if watchLiveHeartRate != nil   { return .watch }
+        if hkManager.heartRate != nil  { return .healthKit }
+        if heartRate != nil            { return .simulated }
+        return .unavailable
+    }
+
+    var hrvSource: VitalSource {
+        if watchLiveHRV != nil  { return .watch }
+        if hkManager.hrv != nil { return .healthKit }
+        return .unavailable
+    }
+
     // MARK: - Immersive space
     let immersiveSpaceID = "ImmersiveSpace"
     var immersiveSpaceState = ImmersiveSpaceState.closed
@@ -96,6 +133,22 @@ class AppModel {
     // MARK: - HealthKit (real data from paired iPhone / Apple Watch)
     let hkManager = VisionOSHealthKitManager()
 
+    // MARK: - Watch bridge
+    // Two independent paths relay the Watch's data, relayed through the
+    // iPhone (WatchConnectivity itself can't reach visionOS): CloudKit works
+    // on real devices and Simulator alike but needs a paid dev team + iCloud
+    // sign-in; the localhost bridge needs neither but only connects when
+    // both apps are Simulator processes on the same Mac. Whichever is
+    // reachable drives these published properties.
+    private let watchPuller = CloudKitWatchPuller()
+    private let bridgeClient = WatchBridgeClient()
+    private var isCloudBridgeConnected = false
+    private var isLocalBridgeConnected = false
+    var isWatchCloudConnected = false
+    var watchLiveProbability:  Double? = nil
+    var watchLiveHeartRate:    Int?    = nil
+    var watchLiveHRV:          Double? = nil
+
     // MARK: - Internals
     private var model        = SeizureDetectionModel()
     private var eegSource    = EEGSimulator()
@@ -106,6 +159,57 @@ class AppModel {
 
     func requestHealthKitAuthorization() {
         Task { await hkManager.requestAuthorization() }
+    }
+
+    func startWatchBridgeSync() {
+        // CloudKit path
+        watchPuller.onConnectionChange = { [weak self] connected in
+            guard let self else { return }
+            self.isCloudBridgeConnected = connected
+            self.refreshBridgeConnectionState()
+        }
+        watchPuller.onLiveUpdate = { [weak self] probability, heartRate, hrv, _ in
+            self?.watchLiveProbability = probability
+            self?.watchLiveHeartRate   = heartRate
+            self?.watchLiveHRV         = hrv
+        }
+        watchPuller.onNewEvent = { [weak self] event in
+            self?.mergeWatchEvent(event)
+        }
+        watchPuller.start()
+
+        // Localhost path (Simulator only — see WatchBridgeClient.swift)
+        bridgeClient.onConnectionChange = { [weak self] connected in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLocalBridgeConnected = connected
+                self.refreshBridgeConnectionState()
+            }
+        }
+        bridgeClient.onMessage = { [weak self] message in
+            Task { @MainActor in
+                guard let self else { return }
+                switch message.kind {
+                case .live:
+                    self.watchLiveProbability = message.probability
+                    self.watchLiveHeartRate   = message.heartRate
+                    self.watchLiveHRV         = message.hrv
+                case .event:
+                    if let event = message.event { self.mergeWatchEvent(event) }
+                }
+            }
+        }
+        bridgeClient.start()
+    }
+
+    private func refreshBridgeConnectionState() {
+        isWatchCloudConnected = isCloudBridgeConnected || isLocalBridgeConnected
+    }
+
+    private func mergeWatchEvent(_ event: DetectionEvent) {
+        guard !eventLog.contains(where: { $0.id == event.id }) else { return }
+        eventLog.insert(event, at: 0)
+        eventLog.sort { $0.timestamp > $1.timestamp }
     }
 
     func startMonitoring() {

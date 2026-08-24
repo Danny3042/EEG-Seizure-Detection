@@ -84,8 +84,8 @@ struct ElectrodeDetailPanel: View {
                 )
                 MetricTile(
                     label: "Seizure P",
-                    value: String(format: "%.0f%%", appModel.seizureProbability * 100),
-                    color: appModel.seizureProbability > 0.7 ? .red : .green
+                    value: String(format: "%.0f%%", appModel.displayProbability * 100),
+                    color: appModel.displayProbability > 0.7 ? .red : .green
                 )
             }
 
