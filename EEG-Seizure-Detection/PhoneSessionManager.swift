@@ -11,7 +11,9 @@ import Combine
 
 /// WCSession delegate — receives alerts from Watch, sends to visionOS
 class PhoneSessionManager: NSObject, ObservableObject {
-    @Published var detectionEvents:      [DetectionEvent] = []
+    @Published var detectionEvents:      [DetectionEvent] = [] {
+        didSet { saveEvents() }
+    }
     @Published var isWatchReachable      = false
     #if os(iOS)
     // "Connected" should mean "paired + app installed", not momentary live
@@ -33,22 +35,45 @@ class PhoneSessionManager: NSObject, ObservableObject {
     var appModel: AppModel?
 
     private var session: WCSession?
-    
+    private let eventsStorageKey = "detection_events"
+    private let maxStoredEvents  = 300
+    private var isLoadingEvents  = false
+
     override init() {
         super.init()
-        
+
         if WCSession.isSupported() {
             session = WCSession.default
             session?.delegate = self
         }
+
+        loadEvents()
     }
-    
+
     func activateSession() {
         session?.activate()
     }
-    
+
     func clearEvents() {
         detectionEvents.removeAll()
+    }
+
+    // MARK: - Persistence
+
+    private func saveEvents() {
+        guard !isLoadingEvents else { return }
+        let capped = Array(detectionEvents.prefix(maxStoredEvents))
+        guard let data = try? JSONEncoder().encode(capped) else { return }
+        UserDefaults.standard.set(data, forKey: eventsStorageKey)
+    }
+
+    private func loadEvents() {
+        guard let data = UserDefaults.standard.data(forKey: eventsStorageKey),
+              let decoded = try? JSONDecoder().decode([DetectionEvent].self, from: data)
+        else { return }
+        isLoadingEvents = true
+        detectionEvents = decoded
+        isLoadingEvents = false
     }
     
     // Send configuration to Watch
